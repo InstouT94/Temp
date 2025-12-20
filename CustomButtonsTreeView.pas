@@ -24,6 +24,17 @@ type
     procedure InvalidateButton(TV: TCustomTreeView; Node: TTreeNode);
     procedure DoNodeButtonClick(Node: TTreeNode);
   end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  TreeView1.DoubleBuffered := True;
+
+  TreeView1.OnAdvancedCustomDrawItem := TreeView1AdvancedCustomDrawItem;
+  TreeView1.OnMouseMove := TreeView1MouseMove;
+  TreeView1.OnMouseDown := TreeView1MouseDown;
+  TreeView1.OnMouseUp := TreeView1MouseUp;
+end;
+
 function TForm1.NodeHasButton(Node: TTreeNode): Boolean;
 begin
   Result := (Node <> nil) and (Node.Data <> nil); // ваш критерий
@@ -56,7 +67,7 @@ var
 begin
   if not Assigned(Node) then Exit;
   R := ButtonRect(TV, Node);
-  Windows.InvalidateRect(TV.Handle, @R, True);
+  InvalidateRect(TV.Handle, @R, True);
 end;
 
 procedure TForm1.DoNodeButtonClick(Node: TTreeNode);
