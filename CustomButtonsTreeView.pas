@@ -35,6 +35,12 @@ begin
   TreeView1.OnMouseUp := TreeView1MouseUp;
 end;
 
+procedure TForm1.TreeView1Deletion(Sender: TObject; Node: TTreeNode);
+begin
+  if Node = FHotNode then FHotNode := nil;
+  if Node = FDownNode then FDownNode := nil;
+end;
+
 function TForm1.NodeHasButton(Node: TTreeNode): Boolean;
 begin
   Result := (Node <> nil) and (Node.Data <> nil); // ваш критерий
@@ -72,9 +78,14 @@ end;
 
 procedure TForm1.DoNodeButtonClick(Node: TTreeNode);
 begin
-  // пример: удалить узел
+  // сбросить “hover/pressed”, чтобы дальше никто не трогал удалённый Node
+  if Node = FHotNode then FHotNode := nil;
+  if Node = FDownNode then FDownNode := nil;
+  TreeView1.Cursor := crDefault;
+
   Node.Delete;
 end;
+
 procedure TForm1.TreeView1AdvancedCustomDrawItem(Sender: TCustomTreeView;
   Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage;
   var PaintImages, DefaultDraw: Boolean);
@@ -107,6 +118,7 @@ begin
   StyleServices.DrawText(TV.Canvas.Handle, Details, 'Удалить', RBtn,
     DT_CENTER or DT_VCENTER or DT_SINGLELINE, 0);
 end;
+
 procedure TForm1.TreeView1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 var
   TV: TCustomTreeView;
@@ -160,18 +172,17 @@ procedure TForm1.TreeView1MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   TV: TCustomTreeView;
-  Node: TTreeNode;
+  ClickNode, NodeUnderMouse: TTreeNode;
 begin
   TV := TCustomTreeView(Sender);
-  Node := TV.GetNodeAt(X, Y);
 
-  if (Button = mbLeft) and (FDownNode <> nil) then
-  begin
-    InvalidateButton(TV, FDownNode);
+  if (Button <> mbLeft) or (FDownNode = nil) then Exit;
 
-    if (Node = FDownNode) and PtInRect(ButtonRect(TV, Node), Point(X, Y)) then
-      DoNodeButtonClick(Node);
+  ClickNode := FDownNode;
+  FDownNode := nil;                 // сразу обнуляем “pressed”
+  InvalidateButton(TV, ClickNode);   // пока узел точно жив
 
-    FDownNode := nil;
-  end;
+  NodeUnderMouse := TV.GetNodeAt(X, Y);
+  if (NodeUnderMouse = ClickNode) and PtInRect(ButtonRect(TV, ClickNode), Point(X, Y)) then
+    DoNodeButtonClick(ClickNode);   // тут узел может быть удалён, дальше ClickNode не трогаем
 end;
