@@ -25,6 +25,7 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure TreeView1MouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure TreeView1MouseLeave(Sender: TObject);
     procedure TreeView1Deletion(Sender: TObject; Node: TTreeNode);
     procedure Button1Click(Sender: TObject);
   private
@@ -76,6 +77,25 @@ begin
   //Memo1.Lines.Add('Button add node ' + IntToStr(val) + ': 1');
   node.Data := Pointer(val+1);
   //Memo1.Lines.Add('Button add node ' + IntToStr(val) + ': 2');
+end;
+
+procedure TForm1.TreeView1MouseLeave(Sender: TObject);
+var
+  OldHot, OldDown: TTreeNode;
+begin
+  OldHot := FHotNode;
+  OldDown := FDownNode;
+
+  FHotNode := nil;
+  FDownNode := nil;      // если хотите как у обычной кнопки: ушли мышью — “нажатие” снимаем
+  TreeView1.Cursor := crDefault;
+
+  // Надёжнее всего — перерисовать весь TreeView (без артефактов)
+  TreeView1.Invalidate;
+
+  // Если хотите оптимальнее — можно так, но только если уверены, что узлы живы:
+  // if OldHot <> nil then InvalidateButton(TreeView1, OldHot);
+  // if (OldDown <> nil) and (OldDown <> OldHot) then InvalidateButton(TreeView1, OldDown);
 end;
 
 procedure TForm1.TVWndProc(var Msg: TMessage);
