@@ -1,11 +1,19 @@
+unit Unit1;
+
+interface
+
 uses
-  Winapi.Windows, Winapi.Messages, System.Types,
-  Vcl.ComCtrls, Vcl.Controls, Vcl.Graphics,
-  Vcl.Themes; // для StyleServices
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  System.Types,
+  Vcl.ComCtrls,
+  Vcl.Themes, Vcl.StdCtrls; // для StyleServices
 
 type
   TForm1 = class(TForm)
     TreeView1: TTreeView;
+    Button1: TButton;
+    Memo1: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure TreeView1AdvancedCustomDrawItem(Sender: TCustomTreeView;
       Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage;
@@ -16,6 +24,8 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure TreeView1MouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure TreeView1Deletion(Sender: TObject; Node: TTreeNode);
+    procedure Button1Click(Sender: TObject);
   private
     FHotNode: TTreeNode;
     FDownNode: TTreeNode;
@@ -23,16 +33,38 @@ type
     function ButtonRect(TV: TCustomTreeView; Node: TTreeNode): TRect;
     procedure InvalidateButton(TV: TCustomTreeView; Node: TTreeNode);
     procedure DoNodeButtonClick(Node: TTreeNode);
+  public
+    { Public declarations }
   end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.dfm}
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  TreeView1.DoubleBuffered := True;
+  //TreeView1.DoubleBuffered := True;
 
-  TreeView1.OnAdvancedCustomDrawItem := TreeView1AdvancedCustomDrawItem;
+  {TreeView1.OnAdvancedCustomDrawItem := TreeView1AdvancedCustomDrawItem;
   TreeView1.OnMouseMove := TreeView1MouseMove;
   TreeView1.OnMouseDown := TreeView1MouseDown;
-  TreeView1.OnMouseUp := TreeView1MouseUp;
+  TreeView1.OnMouseUp := TreeView1MouseUp;}
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+var
+  node: TTreeNode;
+  val: Integer;
+begin
+  val := TreeView1.Items.Count;
+  //Memo1.Lines.Add('Button add node ' + IntToStr(val) + ': 0');
+  node := TreeView1.Items.Add(nil, '_______________________' + IntToStr(val));
+  //Memo1.Lines.Add('Button add node ' + IntToStr(val) + ': 1');
+  node.Data := Pointer(val+1);
+  //Memo1.Lines.Add('Button add node ' + IntToStr(val) + ': 2');
 end;
 
 procedure TForm1.TreeView1Deletion(Sender: TObject; Node: TTreeNode);
@@ -43,6 +75,8 @@ end;
 
 function TForm1.NodeHasButton(Node: TTreeNode): Boolean;
 begin
+  {if Assigned(Node) then
+    Memo1.Lines.Add('NodeHasButton: ' + Node.Text + ' ' + IntToStr(Integer(Node.Data)));}
   Result := (Node <> nil) and (Node.Data <> nil); // ваш критерий
 end;
 
@@ -78,6 +112,7 @@ end;
 
 procedure TForm1.DoNodeButtonClick(Node: TTreeNode);
 begin
+  // пример: удалить узел
   // сбросить “hover/pressed”, чтобы дальше никто не трогал удалённый Node
   if Node = FHotNode then FHotNode := nil;
   if Node = FDownNode then FDownNode := nil;
@@ -115,7 +150,7 @@ begin
     Details := StyleServices.GetElementDetails(tbPushButtonNormal);
 
   StyleServices.DrawElement(TV.Canvas.Handle, Details, RBtn);
-  StyleServices.DrawText(TV.Canvas.Handle, Details, 'Удалить', RBtn,
+  StyleServices.DrawText(TV.Canvas.Handle, Details, '...', RBtn,
     DT_CENTER or DT_VCENTER or DT_SINGLELINE, 0);
 end;
 
@@ -186,3 +221,5 @@ begin
   if (NodeUnderMouse = ClickNode) and PtInRect(ButtonRect(TV, ClickNode), Point(X, Y)) then
     DoNodeButtonClick(ClickNode);   // тут узел может быть удалён, дальше ClickNode не трогаем
 end;
+
+end.
