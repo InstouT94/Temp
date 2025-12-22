@@ -15,6 +15,7 @@ type
     Button1: TButton;
     Memo1: TMemo;
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure TreeView1AdvancedCustomDrawItem(Sender: TCustomTreeView;
       Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage;
       var PaintImages, DefaultDraw: Boolean);
@@ -29,6 +30,9 @@ type
   private
     FHotNode: TTreeNode;
     FDownNode: TTreeNode;
+    FOldTVProc: TWndMethod;
+
+    procedure TVWndProc(var Msg: TMessage);
     function NodeHasButton(Node: TTreeNode): Boolean;
     function ButtonRect(TV: TCustomTreeView; Node: TTreeNode): TRect;
     procedure InvalidateButton(TV: TCustomTreeView; Node: TTreeNode);
@@ -47,11 +51,18 @@ implementation
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   //TreeView1.DoubleBuffered := True;
+  //TreeView1.OnAdvancedCustomDrawItem := TreeView1AdvancedCustomDrawItem;
+  //TreeView1.OnMouseMove := TreeView1MouseMove;
+  //TreeView1.OnMouseDown := TreeView1MouseDown;
+  //TreeView1.OnMouseUp := TreeView1MouseUp;
+  FOldTVProc := TreeView1.WindowProc;
+  TreeView1.WindowProc := TVWndProc;
+end;
 
-  {TreeView1.OnAdvancedCustomDrawItem := TreeView1AdvancedCustomDrawItem;
-  TreeView1.OnMouseMove := TreeView1MouseMove;
-  TreeView1.OnMouseDown := TreeView1MouseDown;
-  TreeView1.OnMouseUp := TreeView1MouseUp;}
+procedure TForm1.FormDestroy(Sender: TObject);
+begin
+  if Assigned(FOldTVProc) then
+    TreeView1.WindowProc := FOldTVProc;
 end;
 
 procedure TForm1.Button1Click(Sender: TObject);
@@ -65,6 +76,37 @@ begin
   //Memo1.Lines.Add('Button add node ' + IntToStr(val) + ': 1');
   node.Data := Pointer(val+1);
   //Memo1.Lines.Add('Button add node ' + IntToStr(val) + ': 2');
+end;
+
+procedure TForm1.TVWndProc(var Msg: TMessage);
+var
+  OldClientW: Integer;
+begin
+  OldClientW := TreeView1.ClientWidth;
+
+  // даём TreeView обработать сообщение
+  FOldTVProc(Msg);
+
+  // 1) если изменился ClientWidth (появился/исчез скроллбар) — перерисовать всё
+  if TreeView1.ClientWidth <> OldClientW then
+  begin
+    FHotNode := nil;
+    FDownNode := nil;
+    TreeView1.Cursor := crDefault;
+    TreeView1.Invalidate;
+    Exit;
+  end;
+
+  // 2) при прокрутке/колесе/resize — тоже полный Invalidate
+  case Msg.Msg of
+    WM_VSCROLL, WM_HSCROLL, WM_MOUSEWHEEL, WM_SIZE:
+      begin
+        FHotNode := nil;
+        FDownNode := nil;
+        TreeView1.Cursor := crDefault;
+        TreeView1.Invalidate;
+      end;
+  end;
 end;
 
 procedure TForm1.TreeView1Deletion(Sender: TObject; Node: TTreeNode);
