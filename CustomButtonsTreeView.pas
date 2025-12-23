@@ -25,9 +25,9 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure TreeView1MouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure TreeView1MouseLeave(Sender: TObject);
     procedure TreeView1Deletion(Sender: TObject; Node: TTreeNode);
     procedure Button1Click(Sender: TObject);
+    procedure TreeView1MouseLeave(Sender: TObject);
   private
     FHotNode: TTreeNode;
     FDownNode: TTreeNode;
@@ -72,30 +72,8 @@ var
   val: Integer;
 begin
   val := TreeView1.Items.Count;
-  //Memo1.Lines.Add('Button add node ' + IntToStr(val) + ': 0');
   node := TreeView1.Items.Add(nil, '_______________________' + IntToStr(val));
-  //Memo1.Lines.Add('Button add node ' + IntToStr(val) + ': 1');
   node.Data := Pointer(val+1);
-  //Memo1.Lines.Add('Button add node ' + IntToStr(val) + ': 2');
-end;
-
-procedure TForm1.TreeView1MouseLeave(Sender: TObject);
-var
-  OldHot, OldDown: TTreeNode;
-begin
-  OldHot := FHotNode;
-  OldDown := FDownNode;
-
-  FHotNode := nil;
-  FDownNode := nil;      // если хотите как у обычной кнопки: ушли мышью — “нажатие” снимаем
-  TreeView1.Cursor := crDefault;
-
-  // Надёжнее всего — перерисовать весь TreeView (без артефактов)
-  TreeView1.Invalidate;
-
-  // Если хотите оптимальнее — можно так, но только если уверены, что узлы живы:
-  // if OldHot <> nil then InvalidateButton(TreeView1, OldHot);
-  // if (OldDown <> nil) and (OldDown <> OldHot) then InvalidateButton(TreeView1, OldDown);
 end;
 
 procedure TForm1.TVWndProc(var Msg: TMessage);
@@ -137,22 +115,20 @@ end;
 
 function TForm1.NodeHasButton(Node: TTreeNode): Boolean;
 begin
-  {if Assigned(Node) then
-    Memo1.Lines.Add('NodeHasButton: ' + Node.Text + ' ' + IntToStr(Integer(Node.Data)));}
   Result := (Node <> nil) and (Node.Data <> nil); // ваш критерий
 end;
 
 function TForm1.ButtonRect(TV: TCustomTreeView; Node: TTreeNode): TRect;
 const
-  BtnW = 80;
-  BtnH = 20;
+  BtnW = 25;
   MarginRight = 6;
 var
   R: TRect;
-  TopY: Integer;
+  TopY, btnH: Integer;
 begin
   // DisplayRect(True) дает прямоугольник текста — нам важны Top/Height строки
   R := Node.DisplayRect(True);
+  btnH := R.Height;
   TopY := R.Top + (R.Height - BtnH) div 2;
 
   Result := Rect(
@@ -263,6 +239,15 @@ begin
     FDownNode := Node;
     InvalidateButton(TV, Node);
   end;
+end;
+
+procedure TForm1.TreeView1MouseLeave(Sender: TObject);
+begin
+  FHotNode := nil;
+  FDownNode := nil;
+  TreeView1.Cursor := crDefault;
+
+  TreeView1.Invalidate;
 end;
 
 procedure TForm1.TreeView1MouseUp(Sender: TObject; Button: TMouseButton;
