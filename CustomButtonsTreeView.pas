@@ -11,7 +11,7 @@ uses
 
 type
   TNodeButtonKind = (nbNone, nbDelete, nbAction);
-  
+
   TForm1 = class(TForm)
     TreeView1: TTreeView;
     Button1: TButton;
@@ -32,9 +32,9 @@ type
     procedure TreeView1MouseLeave(Sender: TObject);
   private
     FHotNode: TTreeNode;
-    FHotBtn: TNodeBtnKind;
+    FHotBtn: TNodeButtonKind;
     FDownNode: TTreeNode;
-    FDownBtn: TNodeBtnKind;
+    FDownBtn: TNodeButtonKind;
     FOldTVProc: TWndMethod;
 
     procedure TVWndProc(var Msg: TMessage);
@@ -56,11 +56,6 @@ implementation
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  //TreeView1.DoubleBuffered := True;
-  //TreeView1.OnAdvancedCustomDrawItem := TreeView1AdvancedCustomDrawItem;
-  //TreeView1.OnMouseMove := TreeView1MouseMove;
-  //TreeView1.OnMouseDown := TreeView1MouseDown;
-  //TreeView1.OnMouseUp := TreeView1MouseUp;
   FOldTVProc := TreeView1.WindowProc;
   TreeView1.WindowProc := TVWndProc;
 end;
@@ -78,7 +73,9 @@ var
 begin
   val := TreeView1.Items.Count;
   node := TreeView1.Items.Add(nil, '_______________________' + IntToStr(val));
-  node.Data := Pointer(val+1);
+  node.Data := nil;
+  if val mod 3 = 0 then
+    node.Data := Pointer(val+1);
 end;
 
 procedure TForm1.TVWndProc(var Msg: TMessage);
@@ -120,24 +117,24 @@ end;
 
 function TForm1.NodeHasAction(Node: TTreeNode): Boolean;
 begin
-  Result := (Node <> nil) and (Node.Data <> nil); // ваш критерий
+  Result := (Node <> nil) and (Node.Data <> nil); // критерий для вызова настроек
 end;
 
 function TForm1.ButtonRect(TV: TCustomTreeView; Node: TTreeNode; Kind: TNodeButtonKind): TRect;
 const
-  BtnW = 25;
-  MarginRight = 6;
-  Gap = 4;
+  MarginRight = 4;
+  Gap = 2;
 var
   RText: TRect;
-  TopY, BtnH: Integer;
+  TopY, BtnW, BtnH: Integer;
   RightX: Integer;
   ActionVisible: Boolean;
 begin
   RText := Node.DisplayRect(True);
-  BtnH := R.Height;
-  TopY := R.Top + (RText.Height - BtnH) div 2;
-  
+  BtnH := RText.Height;
+  BtnW := BtnH;
+  TopY := RText.Top + (RText.Height - BtnH) div 2;
+
   RightX := TV.ClientWidth - MarginRight;
   ActionVisible := NodeHasAction(Node);
 
@@ -200,8 +197,8 @@ end;
 procedure TForm1.TreeView1AdvancedCustomDrawItem(Sender: TCustomTreeView;
   Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage;
   var PaintImages, DefaultDraw: Boolean);
-  
-  procedure DrawBtn(Kind: TNodeBtnKind; const CaptionOrGlyph: string);
+
+  procedure DrawBtn(Kind: TNodeButtonKind; const CaptionOrGlyph: string);
   var
     TV: TCustomTreeView;
     R: TRect;
@@ -224,13 +221,9 @@ procedure TForm1.TreeView1AdvancedCustomDrawItem(Sender: TCustomTreeView;
     else
       Details := StyleServices.GetElementDetails(tbPushButtonNormal);
 
-    // очистить фон под кнопкой (убирает “хвосты”)
-    TV.Canvas.Brush.Color := TV.Color;
-    TV.Canvas.FillRect(R);
-
     StyleServices.DrawElement(TV.Canvas.Handle, Details, R);
 
-    // вариант 1: символ (× / …)
+    // вариант 1: символ (× / ...)
     StyleServices.DrawText(TV.Canvas.Handle, Details, CaptionOrGlyph, R,
       DT_CENTER or DT_VCENTER or DT_SINGLELINE, 0);
   end;
@@ -239,29 +232,29 @@ begin
   if Stage <> cdPostPaint then Exit;
 
   // delete всегда
-  DrawButton(nbDelete, '×');
+  DrawBtn(nbDelete, '×');
 
   // action только при Data
   if NodeHasAction(Node) then
-    DrawButton(nbAction, '…');
+    DrawBtn(nbAction, '...'{'…'});
 end;
 
 procedure TForm1.TreeView1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 var
   TV: TCustomTreeView;
   N: TTreeNode;
-  K: TNodeBtnKind;
+  K: TNodeButtonKind;
 begin
   TV := TCustomTreeView(Sender);
 
-  if HitTestBtn(TV, X, Y, N, K) then
+  if HitTestButton(TV, X, Y, N, K) then
   begin
     if (FHotNode <> N) or (FHotBtn <> K) then
     begin
-      InvalidateBtn(TV, FHotNode, FHotBtn);
+      InvalidateButton(TV, FHotNode, FHotBtn);
       FHotNode := N;
       FHotBtn := K;
-      InvalidateBtn(TV, FHotNode, FHotBtn);
+      InvalidateButton(TV, FHotNode, FHotBtn);
     end;
     TV.Cursor := crHandPoint;
   end
@@ -269,7 +262,7 @@ begin
   begin
     if FHotNode <> nil then
     begin
-      InvalidateBtn(TV, FHotNode, FHotBtn);
+      InvalidateButton(TV, FHotNode, FHotBtn);
       FHotNode := nil;
       FHotBtn := nbNone;
     end;
@@ -281,16 +274,16 @@ procedure TForm1.TreeView1MouseDown(Sender: TObject; Button: TMouseButton; Shift
 var
   TV: TCustomTreeView;
   N: TTreeNode;
-  K: TNodeBtnKind;
+  K: TNodeButtonKind;
 begin
   if Button <> mbLeft then Exit;
   TV := TCustomTreeView(Sender);
 
-  if HitTestBtn(TV, X, Y, N, K) then
+  if HitTestButton(TV, X, Y, N, K) then
   begin
     FDownNode := N;
     FDownBtn := K;
-    InvalidateBtn(TV, N, K);
+    InvalidateButton(TV, N, K);
   end;
 end;
 
@@ -298,7 +291,7 @@ procedure TForm1.TreeView1MouseUp(Sender: TObject; Button: TMouseButton; Shift: 
 var
   TV: TCustomTreeView;
   DownN, HitN: TTreeNode;
-  DownK, HitK: TNodeBtnKind;
+  DownK, HitK: TNodeButtonKind;
 begin
   if (Button <> mbLeft) or (FDownNode = nil) then Exit;
 
@@ -308,13 +301,13 @@ begin
   DownK := FDownBtn;
   FDownNode := nil;
   FDownBtn := nbNone;
-  InvalidateBtn(TV, DownN, DownK);
+  InvalidateButton(TV, DownN, DownK);
 
-  if HitTestBtn(TV, X, Y, HitN, HitK) and (HitN = DownN) and (HitK = DownK) then
+  if HitTestButton(TV, X, Y, HitN, HitK) and (HitN = DownN) and (HitK = DownK) then
     DoNodeButtonClick(DownN, DownK);
 end;
 
-procedure TForm1.DoNodeButtonClick(Node: TTreeNode; Kind: TNodeBtnKind);
+procedure TForm1.DoNodeButtonClick(Node: TTreeNode; Kind: TNodeButtonKind);
 begin
   // сброс hover/pressed на всякий случай
   if Node = FHotNode then begin FHotNode := nil; FHotBtn := nbNone; end;
@@ -326,14 +319,14 @@ begin
       Node.Delete;
 
     nbAction:
-      ShowMessage('Action для: ' + Node.Text); // тут ваше действие
+      ShowMessage('Action для: ' + Node.Text);
   end;
 end;
 
 procedure TForm1.TreeView1MouseLeave(Sender: TObject);
 begin
-  FHotNode := nil;
-  FDownNode := nil;
+  FHotNode := nil; FHotBtn := nbNone;
+  FDownNode := nil; FDownBtn := nbNone;
   TreeView1.Cursor := crDefault;
 
   TreeView1.Invalidate;
