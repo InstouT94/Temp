@@ -212,7 +212,7 @@ begin
     Details := StyleServices.GetElementDetails(tbPushButtonNormal);
 
   StyleServices.DrawElement(TV.Canvas.Handle, Details, RBtn);
-  StyleServices.DrawText(TV.Canvas.Handle, Details, '...', RBtn,
+  StyleServices.DrawText(TV.Canvas.Handle, Details, '×', RBtn,
     DT_CENTER or DT_VCENTER or DT_SINGLELINE, 0);
 end;
 
